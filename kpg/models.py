@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional
 
 
@@ -9,6 +9,11 @@ class WatchAsset:
     asset_key: str
     tier: int
     thesis: str
+    # "kraken" uses public_ticker(); "yahoo" uses stock_price() via Yahoo Finance.
+    # Tokenized equities (*.EQ assets) must use "yahoo" since Kraken's public
+    # Ticker API does not expose them.
+    price_source: str = "kraken"
+    yahoo_ticker: Optional[str] = None
 
 
 @dataclass
@@ -27,3 +32,4 @@ class PositionSnapshot:
     unrealized_pnl_pct: Optional[float] = None
     recent_high_value: Optional[float] = None
     drawdown_from_high_pct: float = 0.0
+    price_source: str = "kraken"

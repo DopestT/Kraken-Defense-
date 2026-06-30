@@ -5,7 +5,7 @@ from typing import Dict, Any, List
 import yaml
 from dotenv import load_dotenv
 
-from .kraken_client import KrakenClient
+from .kraken_client import KrakenClient, KrakenAPIError
 from .models import WatchAsset, PositionSnapshot
 from .state import load_state, save_state, audit
 from .orchestrator import decide
@@ -21,7 +21,12 @@ def last_price(ticker: Dict[str, Any]) -> float:
     return float(ticker["c"][0])
 
 
-def build_positions(client: KrakenClient, balances: Dict[str, float], config: Dict[str, Any], state: Dict[str, Any]) -> List[PositionSnapshot]:
+def build_positions(
+    client: KrakenClient,
+    balances: Dict[str, float],
+    config: Dict[str, Any],
+    state: Dict[str, Any],
+) -> List[PositionSnapshot]:
     positions: List[PositionSnapshot] = []
     watch_assets = [WatchAsset(**x) for x in config["watchlist"]]
 
@@ -30,8 +35,17 @@ def build_positions(client: KrakenClient, balances: Dict[str, float], config: Di
         if qty <= 0:
             continue
 
-        ticker = client.public_ticker(asset.pair)
-        price = last_price(ticker)
+        # Route price fetch: Kraken public ticker OR Yahoo Finance for .EQ equities
+        try:
+            if asset.price_source == "yahoo" and asset.yahoo_ticker:
+                price = client.stock_price(asset.yahoo_ticker)
+            else:
+                ticker = client.public_ticker(asset.pair)
+                price = last_price(ticker)
+        except KrakenAPIError as exc:
+            print(f"[WARN] Could not fetch price for {asset.symbol}: {exc}")
+            continue
+
         value = qty * price
 
         pstate = state.setdefault("positions", {}).setdefault(asset.symbol, {})
@@ -58,24 +72,29 @@ def build_positions(client: KrakenClient, balances: Dict[str, float], config: Di
             cost_basis=cost_basis,
             unrealized_pnl=pnl,
             unrealized_pnl_pct=pnl_pct,
+            price_source=asset.price_source,
         ))
 
     return positions
 
 
-def estimate_total_value(client: KrakenClient, balances: Dict[str, float], positions: List[PositionSnapshot], config: Dict[str, Any]) -> float:
+def estimate_total_value(
+    client: KrakenClient,
+    balances: Dict[str, float],
+    positions: List[PositionSnapshot],
+    config: Dict[str, Any],
+) -> float:
     stable_assets = set(config["bot"]["stable_assets"])
     stable_value = sum(float(v) for k, v in balances.items() if k in stable_assets)
     watched_value = sum(p.value for p in positions)
-
-    # v1 only values stable assets + configured watchlist positions.
-    # Add more assets to watchlist for a fuller valuation.
     return stable_value + watched_value
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", default="config.example.yaml")
+    parser.add_argument("--dry-run", action="store_true", default=True,
+                        help="Simulate orders without sending to Kraken (default: on)")
     args = parser.parse_args()
 
     load_dotenv()
@@ -85,6 +104,7 @@ def main() -> None:
     client = KrakenClient(
         api_key=os.getenv("KRAKEN_API_KEY"),
         api_secret=os.getenv("KRAKEN_API_SECRET"),
+        dry_run=args.dry_run,
     )
 
     balances = client.balances()

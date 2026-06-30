@@ -1,74 +1,22 @@
 bot:
-  name: Kraken Profit Guard
-  execution_mode: suggest_only   # suggest_only | semi_auto | full_auto
-  dry_run: true
-  quote_currency: USD
-  stable_assets: ["ZUSD", "USD", "USDC", "USDC.S"]
-
-portfolio_rules:
-  normal_usdc_reserve_pct_min: 0.10
-  normal_usdc_reserve_pct_target: 0.20
-  chop_usdc_reserve_pct_target: 0.30
-  bear_usdc_reserve_pct_target: 0.40
-  panic_usdc_reserve_pct_target: 0.50
-  weekly_profit_protect_min_pct: 0.25
-  weekly_profit_protect_max_pct: 0.50
-  max_single_coin_pct: 0.35
-  max_meme_coin_pct: 0.10
-
-position_rules:
-  profit_tiers:
-    - min_profit_pct: 0.10
-      max_profit_pct: 0.20
-      sell_profit_pct: 0.15
-    - min_profit_pct: 0.20
-      max_profit_pct: 0.35
-      sell_profit_pct: 0.30
-    - min_profit_pct: 0.35
-      max_profit_pct: 0.60
-      sell_profit_pct: 0.45
-    - min_profit_pct: 0.60
-      max_profit_pct: 999
-      sell_profit_pct: 0.60
-  trailing_drawdown_pct: 0.10
-  trailing_sell_position_pct: 0.25
-  loss_review_pct: -0.08
-  loss_strict_pct: -0.15
-
-risk:
-  max_daily_trades: 6
-  max_trades_per_coin_per_day: 2
-  kill_switch_daily_drawdown_stop_buys_pct: 0.05
-  kill_switch_daily_drawdown_freeze_pct: 0.10
-  max_spread_pct: 0.012
-  min_confidence_for_trade: 0.70
-
-market_regime:
-  # v1 uses simple manual default. Later: compute from BTC trend.
-  default: chop   # bull | chop | bear | panic
+  stable_assets: ["ZUSD", "USD", "USDC", "USDC.S", "RLUSD"]
 
 watchlist:
-  # Kraken pair naming varies. These examples are common display symbols mapped to Kraken ws/rest pairs.
-  - symbol: XRP
-    pair: XRP/USD
-    asset_key: XXRP
-    tier: 1
-    thesis: trend_continuation
-  - symbol: SOL
-    pair: SOL/USD
-    asset_key: SOL
-    tier: 1
-    thesis: support_bounce
-  - symbol: BTC
-    pair: BTC/USD
-    asset_key: XXBT
-    tier: 1
-    thesis: long_term_accumulation
-  - symbol: ETH
-    pair: ETH/USD
-    asset_key: XETH
-    tier: 1
-    thesis: long_term_accumulation
+  # ── Crypto (price via Kraken public Ticker) ──────────────────────────────
+  - {symbol: XRP,      pair: XRP/USD,      asset_key: XXRP,     tier: 1, thesis: trend_continuation}
+  - {symbol: SOL,      pair: SOL/USD,      asset_key: SOL03.S,  tier: 1, thesis: long_term_accumulation}
+  - {symbol: XLM,      pair: XLM/USD,      asset_key: XXLM,     tier: 2, thesis: trend_continuation}
+  - {symbol: HBAR,     pair: HBAR/USD,     asset_key: HBAR,     tier: 2, thesis: trend_continuation}
+  - {symbol: ATOM,     pair: ATOM/USD,     asset_key: ATOM21.S, tier: 1, thesis: long_term_accumulation}
+  - {symbol: LUNA,     pair: LUNA/USD,     asset_key: LUNA,     tier: 3, thesis: speculative_recovery}
+  - {symbol: PIEVERSE, pair: PIEVERSE/USD, asset_key: PIEVERSE, tier: 3, thesis: speculative}
+
+  # ── Tokenized Equities (price via Yahoo Finance — Kraken doesn't expose these) ─
+  - {symbol: RXRX, pair: RXRX/USD, asset_key: RXRX.EQ, tier: 3, thesis: speculative,         price_source: yahoo, yahoo_ticker: RXRX}
+  - {symbol: MSOS, pair: MSOS/USD, asset_key: MSOS.EQ, tier: 3, thesis: speculative,         price_source: yahoo, yahoo_ticker: MSOS}
+  - {symbol: SPCX, pair: SPCX/USD, asset_key: SPCX.EQ, tier: 3, thesis: speculative,         price_source: yahoo, yahoo_ticker: SPCX}
+  - {symbol: RDW,  pair: RDW/USD,  asset_key: RDW.EQ,  tier: 3, thesis: speculative,         price_source: yahoo, yahoo_ticker: RDW}
+  - {symbol: LUNR, pair: LUNR/USD, asset_key: LUNR.EQ, tier: 3, thesis: speculative_recovery, price_source: yahoo, yahoo_ticker: LUNR}
 
 state:
   path: ./state/positions.json
